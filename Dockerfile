@@ -21,8 +21,6 @@ RUN curl -L http://download.netbeans.org/netbeans/8.0.2/final/bundles/netbeans-8
     /tmp/netbeans.sh --verbose --silent --state /tmp/state.xml && \
     rm -rf /tmp/*
 
-ADD run /usr/local/bin/netbeans
-
 #------------------------------------------------
 # Install phpenv libraries
 #------------------------------------------------
@@ -56,6 +54,7 @@ RUN unlink /etc/localtime && \
 #------------------------------------------------
 # Create local user
 #------------------------------------------------
+ADD run /usr/local/bin/netbeans
 RUN export USERNAME=developer && \
     adduser --disabled-password --gecos "" ${USERNAME} && \
     echo "${USERNAME}:%{USERNAME}" | chpasswd && \
@@ -68,6 +67,8 @@ RUN export USERNAME=developer && \
 USER developer
 ENV HOME /home/developer
 WORKDIR /home/developer
+
+ADD fonts ${HOME}/.fonts
 
 #------------------------------------------------
 # phpenv
@@ -92,12 +93,13 @@ RUN for ver in `cat /tmp/installver`; do \
 #------------------------------------------------
 # phpcs, phpmd
 #------------------------------------------------
-RUN composer global require squizlabs/php_codesniffer=* && \
-    composer global require phpmd/phpmd=* && \
+RUN composer global require squizlabs/php_codesniffer && \
+    composer global require phpmd/phpmd && \
     composer global require phpunit/phpunit=4.6.* && \
     composer global require robmorgan/phinx && \
     composer global require peridot-php/peridot:~1.15 && \
-    composer global require codegyre/robo
+    composer global require codegyre/robo && \
+    composer global require fabpot/php-cs-fixer
 ENV PATH ${HOME}/.composer/vendor/bin:${PATH}
 
 CMD /usr/local/bin/netbeans
