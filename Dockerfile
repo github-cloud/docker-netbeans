@@ -4,14 +4,28 @@
 # a list of version numbers.
 FROM phusion/baseimage:0.9.16
 
+#------------------------------------------------
+# Japanese
+#------------------------------------------------
+RUN unlink /etc/localtime && \
+    ln -s /urs/share/zoneinfo/Japan /etc/localtim && \
+    locale-gen ja_JP.UTF-8
+
+ENV DEBIAN_FRONTEND noninteractive
+#ENV LC_ALL ja_JP.UTF-8
+#ENV LANG ja_JP.UTF-8
+
 # ...put your own build instructions here...
 RUN sed -ie 's#archive#jp.archive#g' /etc/apt/sources.list && \
     sed -ie 's#main$#main universe#' /etc/apt/sources.list && \
-    apt-get update -qq && apt-get install -qqy software-properties-common && \
+    apt-get update && apt-get install -y software-properties-common && \
     add-apt-repository ppa:webupd8team/java -y && \
-    apt-get update -qq && \
+    apt-get update && \
     echo oracle-java8-installer shared/accepted-oracle-license-v1-1 select true | /usr/bin/debconf-set-selections && \
-    apt-get install -y oracle-java8-installer libxext-dev libxrender-dev libxtst-dev
+    apt-get install -y oracle-java8-installer libxext-dev libxrender-dev libxtst-dev && \
+    apt-get install -y fonts-takao fonts-ipafont fontconfig && \
+    mkdir /usr/lib/jvm/java-8-oracle/jre/lib/fonts/fallback && \
+    ln -s /usr/share/fonts/truetype/takao-gothic/Takao* /usr/lib/jvm/java-8-oracle/jre/lib/fonts/fallback/
 
 ADD state.xml /tmp/state.xml
 
@@ -19,7 +33,8 @@ RUN curl -L http://download.netbeans.org/netbeans/8.0.2/final/bundles/netbeans-8
     chmod +x /tmp/netbeans.sh && \
     echo 'Installing netbeans' && \
     /tmp/netbeans.sh --verbose --silent --state /tmp/state.xml && \
-    rm -rf /tmp/*
+    sed -ie 's/^\(netbeans_default_options=\)"\(.*\)"/\1"\2 --fontsize 14 -J-Dawt.useSystemAAFontSettings=lcd"/' /usr/local/netbeans-8.0.2/etc/netbeans.conf && \
+    rm -rf /tmp/* 
 
 #------------------------------------------------
 # Install phpenv libraries
@@ -43,13 +58,7 @@ RUN cd /tmp && \
 # Cache clean
 #------------------------------------------------
 RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-
-#------------------------------------------------
-# Japanese
-#------------------------------------------------
-RUN unlink /etc/localtime && \
-    ln -s /urs/share/zoneinfo/Japan /etc/localtim && \
-    locale-gen ja_JP.UTF-8
+ENV DEBIAN_FRONTEND dialog
 
 #------------------------------------------------
 # Create local user
@@ -69,6 +78,7 @@ ENV HOME /home/developer
 WORKDIR /home/developer
 
 ADD fonts ${HOME}/.fonts
+RUN fc-cache -fv
 
 #------------------------------------------------
 # phpenv
