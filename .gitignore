@@ -1,2 +1,4 @@
 .netbeans-docker
 fonts/*.ttf
+/wara/nbproject/private/
+/tokusa/nbproject/private/

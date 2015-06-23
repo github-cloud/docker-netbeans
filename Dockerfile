@@ -8,12 +8,10 @@ FROM phusion/baseimage:0.9.16
 # Japanese
 #------------------------------------------------
 RUN unlink /etc/localtime && \
-    ln -s /urs/share/zoneinfo/Japan /etc/localtim && \
+    ln -s /urs/share/zoneinfo/Japan /etc/localtime && \
     locale-gen ja_JP.UTF-8
 
 ENV DEBIAN_FRONTEND noninteractive
-#ENV LC_ALL ja_JP.UTF-8
-#ENV LANG ja_JP.UTF-8
 
 # ...put your own build instructions here...
 RUN sed -ie 's#archive#jp.archive#g' /etc/apt/sources.list && \
@@ -34,7 +32,7 @@ RUN curl -L http://download.netbeans.org/netbeans/8.0.2/final/bundles/netbeans-8
     echo 'Installing netbeans' && \
     /tmp/netbeans.sh --verbose --silent --state /tmp/state.xml && \
     sed -ie 's/^\(netbeans_default_options=\)"\(.*\)"/\1"\2 --fontsize 14 -J-Dawt.useSystemAAFontSettings=lcd"/' /usr/local/netbeans-8.0.2/etc/netbeans.conf && \
-    rm -rf /tmp/* 
+    rm -rf /tmp/*
 
 #------------------------------------------------
 # Install phpenv libraries
@@ -45,7 +43,7 @@ RUN apt-get install -y sudo ack-grep curl lftp jq ca-certificates \
     libcurl4-gnutls-dev libjpeg-dev libpng12-dev libmcrypt-dev \
     libreadline-dev libtidy-dev libxslt1-dev autoconf \
     re2c libmysqlclient-dev libsqlite3-dev libbz2-dev \
-    php5-cli sqlite3
+    php5-cli sqlite3 mysql-common
 
 #------------------------------------------------
 # composer
@@ -71,10 +69,13 @@ RUN export USERNAME=developer && \
     chown ${USERNAME}:${USERNAME} -R /home/${USERNAME} && \
     export SUDOFILE='/etc/sudoers.d/developer' && \
     echo 'developer ALL=(ALL) NOPASSWD: ALL' >> ${SUDOFILE} && \
-    chmod 0440 ${SUDOFILE}
+    chmod 0440 ${SUDOFILE} && \
+    update-alternatives --set editor /usr/bin/vim.basic
 
 USER developer
 ENV HOME /home/developer
+ENV LC_ALL ja_JP.UTF-8
+ENV LANG ja_JP.UTF-8
 WORKDIR /home/developer
 
 ADD fonts ${HOME}/.fonts
@@ -97,18 +98,31 @@ ADD ./installver /tmp/installver
 RUN for ver in `cat /tmp/installver`; do \
       phpenv install $ver; \
       perl -pi -e 's#^;(date.timezone =).*#\1 Asia/Tokyo#g' ${HOME}/.phpenv/versions/${ver}/etc/php.ini;  \
+      perl -pi -e 's#^(expose =).*#\1 Off#g' ${HOME}/.phpenv/versions/${ver}/etc/php.ini;  \
+      perl -pi -e 's#^(display_errors =).*#\1 On#g' ${HOME}/.phpenv/versions/${ver}/etc/php.ini;  \
+      perl -pi -e 's#^(allow_url_fopen =).*#\1 On#g' ${HOME}/.phpenv/versions/${ver}/etc/php.ini;  \
+      perl -pi -e 's#^(allow_url_include =).*#\1 Off#g' ${HOME}/.phpenv/versions/${ver}/etc/php.ini;  \
+      perl -pi -e 's#^(file_upload =).*#\1 Off#g' ${HOME}/.phpenv/versions/${ver}/etc/php.ini;  \
+      perl -pi -e 's#^(sql.safe_mode =).*#\1 On#g' ${HOME}/.phpenv/versions/${ver}/etc/php.ini;  \
+      perl -pi -e 's#^;(magic_quotes_gpc =).*#\1 Off#g' ${HOME}/.phpenv/versions/${ver}/etc/php.ini;  \
+      perl -pi -e 's#^(session.use_strict_mode =).*#\1 1#g' ${HOME}/.phpenv/versions/${ver}/etc/php.ini;  \
+      perl -pi -e 's#^;(session.cookie_secure =).*#\1 1#g' ${HOME}/.phpenv/versions/${ver}/etc/php.ini;  \
+      perl -pi -e 's#^(session.cookie_httponly =).*#\1 1#g' ${HOME}/.phpenv/versions/${ver}/etc/php.ini;  \
+      perl -pi -e 's#^;(mbstring.language =).*#\1 Japanese#g' ${HOME}/.phpenv/versions/${ver}/etc/php.ini;  \
+      perl -pi -e 's#^;(mbstring.internal_encoding =).*#\1 UTF-8#g' ${HOME}/.phpenv/versions/${ver}/etc/php.ini;  \
+      perl -pi -e 's#^;(mbstring.encoding_translation =).*#\1 Off#g' ${HOME}/.phpenv/versions/${ver}/etc/php.ini;  \
+      perl -pi -e 's#^;(mbstring.http_output =).*#\1 pass#g' ${HOME}/.phpenv/versions/${ver}/etc/php.ini;  \
     done && \
     phpenv global `head -n 1 /tmp/installver`
 
 #------------------------------------------------
 # phpcs, phpmd
 #------------------------------------------------
-RUN composer global require squizlabs/php_codesniffer && \
+RUN composer global require robmorgan/phinx && \
+    composer global require squizlabs/php_codesniffer && \
     composer global require phpmd/phpmd && \
     composer global require phpunit/phpunit=4.6.* && \
-    composer global require robmorgan/phinx && \
-    composer global require peridot-php/peridot:~1.15 && \
-    composer global require codegyre/robo && \
+    composer global require phpunit/phpunit-skeleton-generator=* && \
     composer global require fabpot/php-cs-fixer
 ENV PATH ${HOME}/.composer/vendor/bin:${PATH}
 
