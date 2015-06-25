@@ -118,12 +118,12 @@ RUN for ver in `cat /tmp/installver`; do \
 #------------------------------------------------
 # phpcs, phpmd
 #------------------------------------------------
-RUN composer global require robmorgan/phinx && \
-    composer global require squizlabs/php_codesniffer && \
+RUN composer global require squizlabs/php_codesniffer && \
     composer global require phpmd/phpmd && \
+    composer global require fabpot/php-cs-fixer && \
+    composer global require apigen/apigen --dev && \
     composer global require phpunit/phpunit=4.6.* && \
-    composer global require phpunit/phpunit-skeleton-generator=* && \
-    composer global require fabpot/php-cs-fixer
+    composer global require phpunit/phpunit-skeleton-generator=*
 ENV PATH ${HOME}/.composer/vendor/bin:${PATH}
 
 CMD /usr/local/bin/netbeans
